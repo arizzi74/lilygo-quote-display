@@ -273,7 +273,7 @@ This project uses:
 ## 🙏 Credits
 
 - **EPDiy Library**: [vroland/epdiy](https://github.com/vroland/epdiy)
-- **Quote API**: [quotes-api-three.vercel.app](https://quotes-api-three.vercel.app)
+- **Italian Quotes API**: [gpalleschi/quotes_api](https://github.com/gpalleschi/quotes_api) by Giovanni Palleschi
 - **Hardware**: [Lilygo](https://www.lilygo.cc/)
 
 ---
