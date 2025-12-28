@@ -1,0 +1,3 @@
+dependencies:
+  epdiy:
+    git: https://github.com/vroland/epdiy.git

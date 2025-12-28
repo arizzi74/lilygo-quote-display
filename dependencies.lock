@@ -1,0 +1,18 @@
+dependencies:
+  epdiy:
+    component_hash: be122eb0e892feba0e5fcda776bc72a30340bf76d37019db907b4fa7beeaed10
+    dependencies: []
+    source:
+      git: https://github.com/vroland/epdiy.git
+      path: .
+      type: git
+    version: a293ef324b7853582aeeec70b4f7bfaa05099436
+  idf:
+    source:
+      type: idf
+    version: 5.4.1
+direct_dependencies:
+- epdiy
+manifest_hash: 60b23d8b32a5462f511f9e5f8d14932e4a05d46d76cb0d0602bc65ebfe4be8ce
+target: esp32
+version: 2.0.0

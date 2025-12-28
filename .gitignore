@@ -1,0 +1,55 @@
+# ESP-IDF Build System
+build/
+*.bin
+*.elf
+*.map
+
+# ESP-IDF Configuration (machine-specific)
+sdkconfig
+sdkconfig.old
+
+# ESP-IDF Managed Components (downloaded dependencies)
+managed_components/
+
+# Claude Code
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# Flash download tool
+flash_project_args
+flasher_args.json
