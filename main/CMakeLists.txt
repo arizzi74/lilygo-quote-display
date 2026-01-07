@@ -6,6 +6,7 @@ idf_component_register(
          "wikiquote.c"
          "sleep_manager.c"
          "gerunds.c"
+         "battery.c"
     INCLUDE_DIRS "."
     REQUIRES epdiy
              nvs_flash

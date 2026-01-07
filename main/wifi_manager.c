@@ -3,6 +3,7 @@
 #include "webserver.h"
 #include "wikiquote.h"
 #include "sleep_manager.h"
+#include "battery.h"
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
@@ -280,6 +281,20 @@ static void connection_setup_task(void* param) {
     // Initialize SNTP and get current time
     initialize_sntp();
 
+    // Initialize and read battery
+    esp_err_t batt_err = battery_init();
+    float battery_percent = -1.0;
+    if (batt_err == ESP_OK) {
+        battery_percent = battery_read_percentage();
+        if (battery_percent >= 0) {
+            ESP_LOGI(TAG, "Battery percentage: %.1f%%", battery_percent);
+        } else {
+            ESP_LOGW(TAG, "Failed to read battery percentage");
+        }
+    } else {
+        ESP_LOGW(TAG, "Battery init failed: %s", esp_err_to_name(batt_err));
+    }
+
     // Initialize wikiquote
     wikiquote_init();
 
@@ -312,8 +327,14 @@ static void connection_setup_task(void* param) {
     char next_update_str[32];
     strftime(next_update_str, sizeof(next_update_str), "%H:%M", &next_update_tm);
 
-    snprintf(datetime_str, sizeof(datetime_str), "%s - quotes: %lu - next update: %s",
-             time_part, (unsigned long)wifi_manager_get_quote_count(), next_update_str);
+    // Format datetime string with battery percentage
+    if (battery_percent >= 0) {
+        snprintf(datetime_str, sizeof(datetime_str), "%s - quotes: %lu - next: %s - batt: %.0f%%",
+                 time_part, (unsigned long)wifi_manager_get_quote_count(), next_update_str, battery_percent);
+    } else {
+        snprintf(datetime_str, sizeof(datetime_str), "%s - quotes: %lu - next: %s - batt: --%%",
+                 time_part, (unsigned long)wifi_manager_get_quote_count(), next_update_str);
+    }
 
     // Update display with quote, author and time
     if (err == ESP_OK) {
