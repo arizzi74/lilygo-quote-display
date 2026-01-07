@@ -33,6 +33,7 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
 - Button wake for immediate quote refresh
 - Network configuration reset via GPIO 35
 - Quote counter and next update time display
+- Battery voltage monitoring with percentage display
 - Random loading gerund animations
 - SNTP time synchronization (Europe/Rome)
 
@@ -57,12 +58,15 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
 │  │                ESP32 Main Application                │         │
 │  │                     (main.c)                         │         │
 │  │                                                       │         │
-│  └───┬─────────┬─────────┬─────────┬─────────┬─────────┘         │
-│      │         │         │         │         │                    │
-│  ┌───▼─────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌────────┐ │
-│  │Display  │ │WiFi   │ │Web    │ │Sleep  │ │Wiki   │ │Gerund  │ │
-│  │UI       │ │Mgr    │ │Server │ │Mgr    │ │Quote  │ │List    │ │
-│  └───┬─────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬──────┘ └────────┘ │
+│  └───┬─────────┬─────────┬─────────┬─────────┬─────────┬─────┐   │
+│      │         │         │         │         │         │     │   │
+│  ┌───▼─────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼───┐ │   │
+│  │Display  │ │WiFi   │ │Web    │ │Sleep  │ │Wiki   │ │Batt│ │   │
+│  │UI       │ │Mgr    │ │Server │ │Mgr    │ │Quote  │ │Mntr│ │   │
+│  └───┬─────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬───┘ │   │
+│      │         │         │         │         │         │  ┌──▼─┐ │
+│      │         │         │         │         │         │  │Ger.│ │
+│      │         │         │         │         │         │  └────┘ │
 │      │         │         │         │         │                    │
 │  ┌───▼─────────▼─────────▼─────────▼─────────▼──────┐            │
 │  │               ESP-IDF Framework                   │            │
@@ -376,6 +380,17 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
           └────────┬───┘
                    │
        ┌───────────▼────────┐
+       │ Initialize Battery │
+       │ Monitoring (ADC)   │
+       └───────────┬────────┘
+                   │
+       ┌───────────▼────────┐
+       │ Read Battery       │
+       │ Voltage & Calculate│
+       │ Percentage         │
+       └───────────┬────────┘
+                   │
+       ┌───────────▼────────┐
        │ Get Current Time   │
        │ Format: DD/MM/YYYY │
        │        HH:MM       │
@@ -423,7 +438,8 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
        │ Format Status Line: │
        │ "Last update: ...   │
        │  quotes: X          │
-       │  next update: HH:MM"│
+       │  next: HH:MM        │
+       │  batt: XX%"         │
        └──────────┬──────────┘
                   │
        ┌──────────▼──────────┐
@@ -1042,6 +1058,10 @@ for i in 0..60:
         break
     delay(500ms)
 
+# Initialize and read battery
+battery_init()
+battery_percent = battery_read_percentage()
+
 # Get current time
 localtime_r(&now, &timeinfo)
 strftime(time_part, "Last update: %d/%m/%Y %H:%M", &timeinfo)
@@ -1058,9 +1078,13 @@ wikiquote_fetch(&quote, &author)
 wifi_manager_increment_quote_count()
 count = wifi_manager_get_quote_count()
 
-# Format complete status string
-snprintf(datetime_str, "%s - quotes: %lu - next update: %s",
-         time_part, count, next_update_str)
+# Format complete status string with battery
+if battery_percent >= 0:
+    snprintf(datetime_str, "%s - quotes: %lu - next: %s - batt: %.0f%%",
+             time_part, count, next_update_str, battery_percent)
+else:
+    snprintf(datetime_str, "%s - quotes: %lu - next: %s - batt: --%%",
+             time_part, count, next_update_str)
 
 # Display quote
 display_connected_mode(quote, author, datetime_str)
@@ -1388,6 +1412,131 @@ Accomplishing, Actioning, Actualizing, Baking, Booping, Brewing, Building, Calcu
 
 ---
 
+### Module 8: battery.c / battery.h
+
+**Purpose**: Battery voltage monitoring via ADC
+
+**Responsibilities**:
+- Initialize ADC1 with calibration for accurate voltage readings
+- Read battery voltage from GPIO 36 with 2:1 voltage divider compensation
+- Calculate battery percentage based on LiPo discharge curve
+- Provide graceful error handling for display integration
+
+**Hardware Details**:
+- **GPIO**: 36 (ADC1_CHANNEL_0)
+- **Voltage Divider**: 2:1 ratio (2x 100kΩ resistors, hardware-integrated)
+- **ADC Resolution**: 12-bit (0-4095 raw values)
+- **Attenuation**: 11dB (0-3.3V input range)
+- **Calibration**: eFuse vref for production accuracy
+- **Sampling**: 64 samples averaged to reduce noise
+- **LiPo Range**: 3.7V (0%) to 4.2V (100%)
+
+**Key Functions**:
+
+#### `esp_err_t battery_init(void)`
+Initialize battery voltage monitoring.
+
+**Actions**:
+```
+# Configure ADC1 width (12-bit resolution)
+adc1_config_width(ADC_WIDTH_BIT_12)
+
+# Configure ADC1 channel 0 (GPIO 36) with 11dB attenuation
+adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11)
+
+# Characterize ADC using eFuse vref
+esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars)
+
+# Log calibration method used (eFuse vref, Two Point, or Default)
+```
+
+**Returns**:
+- ESP_OK on success
+- ESP error code on failure
+
+#### `float battery_read_voltage(void)`
+Read raw battery voltage in volts.
+
+**Algorithm**:
+```
+if not initialized:
+    return -1.0
+
+# Power on EPD to enable voltage divider circuit
+epd_poweron()
+delay(50ms)  # Wait for voltage stabilization
+
+# Read and average 64 ADC samples
+adc_sum = 0
+for i in 0..63:
+    raw = adc1_get_raw(ADC1_CHANNEL_0)
+    if raw < 0:
+        epd_poweroff()
+        return -1.0
+    adc_sum += raw
+
+adc_average = adc_sum / 64
+
+# Power off EPD
+epd_poweroff()
+
+# Convert ADC reading to millivolts using calibration
+voltage_mv = esp_adc_cal_raw_to_voltage(adc_average, &adc_chars)
+
+# Compensate for 2:1 voltage divider
+actual_voltage = (voltage_mv / 1000.0) * 2.0
+
+return actual_voltage
+```
+
+**Returns**: Battery voltage in volts (3.7-4.2V typical), or -1.0 on error
+
+#### `float battery_read_percentage(void)`
+Read battery percentage (0-100%).
+
+**Algorithm**:
+```
+voltage = battery_read_voltage()
+
+if voltage < 0:
+    return -1.0
+
+# Linear mapping from LiPo voltage curve
+# 3.7V = 0%, 4.2V = 100%
+percentage = ((voltage - 3.7) / (4.2 - 3.7)) * 100.0
+
+# Clamp to valid range (handles charging spikes and deep discharge)
+if percentage > 100.0:
+    percentage = 100.0
+else if percentage < 0.0:
+    percentage = 0.0
+
+return percentage
+```
+
+**Returns**: Battery percentage (0-100), or -1.0 on error
+
+**Power Management**:
+- Battery reading requires EPD power rail active (~50ms)
+- Total read time: ~51ms (50ms stabilization + 1ms sampling)
+- Power consumption: ~10-15mA during reading
+- Negligible impact on wake cycle (<0.3% of active time)
+
+**Error Handling**:
+- Returns -1.0 on all error conditions
+- WiFi manager displays "batt: --%" when percentage < 0
+- All errors logged with ESP_LOGE or ESP_LOGW
+- Module continues to work after transient ADC errors
+
+**Calibration Types**:
+1. **eFuse Vref**: Factory-calibrated reference voltage stored in eFuse (best accuracy)
+2. **Two Point**: Factory two-point calibration (good accuracy)
+3. **Default Vref**: Fallback to 1100mV reference (acceptable accuracy)
+
+**Note**: Uses deprecated ESP-IDF ADC APIs (`driver/adc.h`, `esp_adc_cal.h`) for compatibility with EPDiy library patterns. Consider migrating to `esp_adc/adc_oneshot.h` in future versions.
+
+---
+
 ## API Reference
 
 ### Display UI API
@@ -1480,6 +1629,27 @@ bool sleep_manager_is_wakeup_from_reset_button(void);
 const char* get_random_gerund(void);
 ```
 
+### Battery API
+
+```c
+// Initialize battery voltage monitoring
+// Configures ADC1 Channel 0 (GPIO 36) with calibration
+// NOTE: Must be called before battery_read_percentage()
+esp_err_t battery_init(void);
+
+// Read battery voltage in volts
+// Powers on EPD, reads ADC, calculates actual voltage
+// Accounts for 2:1 voltage divider on hardware
+// Returns: Battery voltage in volts, or -1.0 on error
+float battery_read_voltage(void);
+
+// Read battery percentage (0-100%)
+// Powers on EPD voltage divider, reads ADC, calculates percentage
+// Uses averaged readings (64 samples) for stability
+// Returns: Battery percentage (0-100), or -1.0 on error
+float battery_read_percentage(void);
+```
+
 ---
 
 ## Data Structures
@@ -1541,6 +1711,14 @@ typedef struct {
 // - Active LOW (pressed = 0, released = 1)
 // - Internal pull-up enabled
 // - Wake on falling edge
+
+// Battery monitoring
+#define BATT_PIN_GPIO         36           // ADC1_CHANNEL_0
+#define BATT_ADC_CHANNEL      ADC1_CHANNEL_0
+#define BATT_VOLTAGE_DIVIDER  2.0          // Hardware 2:1 divider
+#define BATT_MIN_VOLTAGE      3.7          // LiPo 0%
+#define BATT_MAX_VOLTAGE      4.2          // LiPo 100%
+#define BATT_SAMPLES          64           // Average 64 readings
 ```
 
 ### Network Configuration

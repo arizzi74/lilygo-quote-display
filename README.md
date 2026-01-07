@@ -21,6 +21,7 @@ This project transforms the Lilygo T5-4.7 e-paper display into an elegant quote 
 - **Automatic Word Wrapping**: Smart text layout with centered alignment
 - **Quote Counter**: Tracks total number of quotes displayed
 - **Next Update Display**: Shows when the next quote will appear
+- **Battery Monitoring**: Real-time battery percentage display on status line
 - **Time Synchronization**: SNTP integration for Europe/Rome timezone
 
 ### WiFi Management
@@ -106,9 +107,10 @@ Once configured, the device:
 2. Displays a random loading gerund ("Thinking...", "Pondering...", etc.)
 3. Connects to WiFi
 4. Syncs time via SNTP
-5. Fetches a random Italian quote
-6. Displays the quote with author, timestamp, and next update time
-7. Returns to deep sleep
+5. Reads battery voltage and calculates percentage
+6. Fetches a random Italian quote
+7. Displays the quote with author, timestamp, next update time, and battery percentage
+8. Returns to deep sleep
 
 ### Manual Quote Refresh
 
@@ -138,6 +140,7 @@ The display shows:
   - Last update timestamp
   - Total quote count
   - Next update time (HH:MM)
+  - Battery percentage
 - **Bottom-right**: 64x64 pixel logo
 
 ### WiFi Settings
@@ -170,6 +173,7 @@ lilygo-quote-display/
 │   ├── webserver.c/h       # HTTP server for provisioning
 │   ├── wikiquote.c/h       # Quote API integration
 │   ├── sleep_manager.c/h   # Deep sleep management
+│   ├── battery.c/h         # Battery voltage monitoring
 │   ├── gerunds.c/h         # Loading screen word list
 │   ├── config_page.h       # Embedded HTML for provisioning
 │   ├── firasans_20.h       # Large font
@@ -202,7 +206,17 @@ lilygo-quote-display/
 ### Power Consumption
 - **Active**: ~200-300mA (WiFi + display update)
 - **Deep Sleep**: ~10-15µA
+- **Battery Reading**: ~51ms per wake cycle (negligible impact)
 - **Wake Sources**: Timer, GPIO 39 (EXT0), GPIO 35 (EXT1)
+
+### Battery Monitoring
+- **GPIO**: 36 (ADC1_CHANNEL_0)
+- **Voltage Divider**: 2:1 ratio (2x 100kΩ resistors, built into hardware)
+- **ADC Resolution**: 12-bit (0-4095)
+- **Voltage Range**: 3.7V (0%) to 4.2V (100%) for LiPo battery
+- **Sampling**: 64 samples averaged for stability
+- **Calibration**: eFuse vref for accurate readings
+- **Display**: Shows percentage on status line or "--%" on error
 
 ### Persistent Storage (NVS)
 - **Namespace**: "wifi_config"
