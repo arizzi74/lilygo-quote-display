@@ -213,17 +213,22 @@ lilygo-quote-display/
 - **GPIO**: 36 (ADC1_CHANNEL_0)
 - **Voltage Divider**: 2:1 ratio (2x 100kΩ resistors, built into hardware)
 - **ADC Resolution**: 12-bit (0-4095)
-- **Voltage Range**: 3.7V (0%) to 4.2V (100%) for LiPo battery
-- **Sampling**: 64 samples averaged for stability
+- **Voltage Range**: 3.0V (0%) to 4.2V (100%) for Li-ion 18650 battery
+- **Sampling**: 64 samples averaged with 2ms inter-sample delays
+- **Stabilization**: 100ms delay after EPD power-on for voltage settling
 - **Calibration**: eFuse vref for accurate readings
+- **Timing**: Read after WiFi connects but before transmissions (minimal interference)
+- **NVS Logging**: Each reading saved to NVS with timestamp, raw ADC, voltage, percentage
 - **Display**: Shows percentage on status line or "--%" on error
+- **Debug**: Last reading printed on startup for battery-powered debugging
 
 ### Persistent Storage (NVS)
-- **Namespace**: "wifi_config"
-- **Keys**:
+- **Namespace "wifi_config"**:
   - `ssid`: WiFi network name (max 32 chars)
   - `password`: WiFi password (max 64 chars)
   - `quote_count`: Total quotes displayed (uint32_t)
+- **Namespace "battery_log"**:
+  - `last_reading`: Battery reading struct (timestamp, ADC raw, voltage mV, actual voltage, percentage)
 
 ## 📚 Documentation
 

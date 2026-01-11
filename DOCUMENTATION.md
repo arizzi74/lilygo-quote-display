@@ -46,52 +46,52 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
 │                         LILYGO T5-4.7 DEVICE                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
-│  │   GPIO 39    │    │   GPIO 35    │    │  E-Paper     │         │
-│  │ Quote Button │    │ Reset Button │    │  960x540     │         │
-│  └──────┬───────┘    └──────┬───────┘    └──────▲───────┘         │
-│         │                   │                   │                  │
-│         │ EXT0 Wake         │ EXT1 Wake         │                  │
-│         │                   │                   │                  │
-│  ┌──────▼───────────────────▼───────────────────┴───────┐         │
-│  │                                                       │         │
-│  │                ESP32 Main Application                │         │
-│  │                     (main.c)                         │         │
-│  │                                                       │         │
-│  └───┬─────────┬─────────┬─────────┬─────────┬─────────┬─────┐   │
-│      │         │         │         │         │         │     │   │
-│  ┌───▼─────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼───┐ │   │
-│  │Display  │ │WiFi   │ │Web    │ │Sleep  │ │Wiki   │ │Batt│ │   │
-│  │UI       │ │Mgr    │ │Server │ │Mgr    │ │Quote  │ │Mntr│ │   │
-│  └───┬─────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬───┘ │   │
-│      │         │         │         │         │         │  ┌──▼─┐ │
-│      │         │         │         │         │         │  │Ger.│ │
-│      │         │         │         │         │         │  └────┘ │
-│      │         │         │         │         │                    │
-│  ┌───▼─────────▼─────────▼─────────▼─────────▼──────┐            │
-│  │               ESP-IDF Framework                   │            │
-│  │  ┌──────────┐  ┌──────┐  ┌────┐  ┌─────────┐    │            │
-│  │  │  EPDiy   │  │ WiFi │  │HTTP│  │ NVS     │    │            │
-│  │  │  Driver  │  │      │  │Serv│  │ Storage │    │            │
-│  │  └──────────┘  └──────┘  └────┘  └─────────┘    │            │
-│  └───────────────────────────────────────────────────┘            │
-│                                                                   │
-└───────────────────────────────────────────────────────────────────┘
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐           │
+│  │   GPIO 39    │    │   GPIO 35    │    │  E-Paper     │           │
+│  │ Quote Button │    │ Reset Button │    │  960x540     │           │
+│  └──────┬───────┘    └──────┬───────┘    └──────▲───────┘           │
+│         │                   │                   │                   │
+│         │ EXT0 Wake         │ EXT1 Wake         │                   │
+│         │                   │                   │                   │
+│  ┌──────▼───────────────────▼───────────────────┴───────┐           │
+│  │                                                      │           │
+│  │                ESP32 Main Application                │           │
+│  │                     (main.c)                         │           │
+│  │                                                      │           │
+│  └───┬─────────┬─────────┬─────────┬─────────┬─────────┬─────┐      │
+│      │         │         │         │         │         │     │      │
+│  ┌───▼─────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌▼───┐  │      │
+│  │Display  │ │WiFi   │ │Web    │ │Sleep  │ │Wiki   │ │Batt│  │      │
+│  │UI       │ │Mgr    │ │Server │ │Mgr    │ │Quote  │ │Mntr│  │      │
+│  └───┬─────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬──────┘ └┬───┘  │      │
+│      │        │         │         │         │         │   ┌──▼─┐    │
+│      │        │         │         │         │         │   │Ger.│    │
+│      │        │         │         │         │         │   └────┘    │
+│      │        │         │         │         │                       │
+│  ┌───▼────────▼─────────▼─────────▼─────────▼─────────▼───┐         │
+│  │               ESP-IDF Framework                        │         │
+│  │  ┌──────────┐  ┌──────┐  ┌────┐  ┌─────────┐           │         │
+│  │  │  EPDiy   │  │ WiFi │  │HTTP│  │ NVS     │           │         │
+│  │  │  Driver  │  │      │  │Serv│  │ Storage │           │         │
+│  │  └──────────┘  └──────┘  └────┘  └─────────┘           │         │
+│  └────────────────────────────────────────────────────────┘         │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      PERSISTENT STORAGE (NVS)                       │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Namespace: "wifi_config"                                          │
-│    - ssid: WiFi network name (max 32 chars)                        │
-│    - password: WiFi password (max 64 chars)                        │
-│    - quote_count: Total quotes displayed (uint32_t)                │
+│  Namespace: "wifi_config"                                           │
+│    - ssid: WiFi network name (max 32 chars)                         │
+│    - password: WiFi password (max 64 chars)                         │
+│    - quote_count: Total quotes displayed (uint32_t)                 │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      EXTERNAL SERVICES                              │
 ├─────────────────────────────────────────────────────────────────────┤
-│  - quotes-api-three.vercel.app/random (Italian quotes API)         │
-│  - pool.ntp.org (SNTP time server)                                 │
+│  - quotes-api-three.vercel.app/random (Italian quotes API)          │
+│  - pool.ntp.org (SNTP time server)                                  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -128,28 +128,28 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
             │ GPIO 35     │ │ GPIO 39   │  │  Timer    │
             │ Reset Button│ │Refresh Btn│  │  Wake     │
             └──────┬──────┘ └─────┬─────┘  └─────┬─────┘
-                   │               │               │
-                   │               └───────┬───────┘
-                   │                       │
+                   │              │              │
+                   │              └───────┬──────┘
+                   │                      │
             ┌──────▼──────┐         ┌─────▼──────┐
             │  Display    │         │  Display   │
             │   Reset     │         │  Random    │
             │Confirmation │         │  Gerund    │
-            └──────┬──────┘         └─────┬──────┘
-                   │                      │
-            ┌──────▼──────┐               │
-            │ Wait 10sec  │               │
-            │ Monitor for │               │
-            │ 3 Presses   │               │
-            └──────┬──────┘               │
-                   │                      │
-           ┌───────┴────────┐             │
-           │                │             │
+            └──────┬──────┘         └────┬───────┘
+                   │                     │
+            ┌──────▼──────┐              │
+            │ Wait 10sec  │              │
+            │ Monitor for │              │
+            │ 3 Presses   │              │
+            └──────┬──────┘              │
+                   │                     │
+           ┌───────┴────────┐            │
+           │                │            │
       ┌────▼────┐      ┌────▼────┐       │
       │3 Press? │      │ Timeout │       │
       │  YES    │      │   NO    │       │
       └────┬────┘      └────┬────┘       │
-           │                │             │
+           │                │            │
       ┌────▼────┐      ┌────▼────┐       │
       │ Delete  │      │ Reboot  │       │
       │  WiFi   │      │ No Chg  │       │
@@ -278,27 +278,27 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
        │  │ User connects to   │   │
        │  │   WMQuote_XX AP    │   │
        │  └─────────┬──────────┘   │
-       │            │               │
+       │            │              │
        │  ┌─────────▼──────────┐   │
        │  │ User opens browser │   │
        │  │  192.168.4.1       │   │
        │  └─────────┬──────────┘   │
-       │            │               │
+       │            │              │
        │  ┌─────────▼──────────┐   │
        │  │  GET / request     │   │
        │  │ Serve HTML form    │   │
        │  └─────────┬──────────┘   │
-       │            │               │
+       │            │              │
        │  ┌─────────▼──────────┐   │
        │  │ User enters SSID   │   │
        │  │   and password     │   │
        │  └─────────┬──────────┘   │
-       │            │               │
+       │            │              │
        │  ┌─────────▼──────────┐   │
        │  │ POST /save request │   │
        │  └─────────┬──────────┘   │
-       │            │               │
-       └────────────┼───────────────┘
+       │            │              │
+       └────────────┼──────────────┘
                     │
             ┌───────▼────────┐
             │ Parse form data│
@@ -692,7 +692,7 @@ An ESP32-based e-paper quote display that fetches random Italian quotes from a R
                             │
                             │ Wake Event
                             │
-                            └─────────────┐
+                            └────────────┐
                                          │
                             ╔════════════▼═╗
                             ║   WAKE UP    ║
@@ -809,11 +809,11 @@ Display WiFi provisioning instructions.
 ┌─────────────────────────────────────────────────────────┐
 │                     960x540                             │
 │                                                         │
-│     ┌────────┐   Connect to                            │
+│     ┌────────┐   Connect to                             │
 │     │        │   'WMQuote_XX' network                   │
 │     │  LOGO  │   to configure WiFi                      │
 │     │ 256x256│                                          │
-│     │        │   Open: http://192.168.4.1              │
+│     │        │   Open: http://192.168.4.1               │
 │     └────────┘                                          │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
@@ -882,7 +882,7 @@ Display loading screen with random gerund.
 │                                                         │
 │     ┌────────┐                                          │
 │     │        │                                          │
-│     │  LOGO  │   Thinking...                           │
+│     │  LOGO  │   Thinking...                            │
 │     │ 256x256│                                          │
 │     │        │                                          │
 │     └────────┘                                          │
@@ -906,7 +906,7 @@ Display network reset confirmation prompt.
 ┌─────────────────────────────────────────────────────────┐
 │                     960x540                             │
 │                                                         │
-│     ┌────────┐   To reset network                      │
+│     ┌────────┐   To reset network                       │
 │     │        │   configuration press                    │
 │     │  LOGO  │   same button 3 times                    │
 │     │ 256x256│   in next 10 seconds                     │
@@ -1419,7 +1419,8 @@ Accomplishing, Actioning, Actualizing, Baking, Booping, Brewing, Building, Calcu
 **Responsibilities**:
 - Initialize ADC1 with calibration for accurate voltage readings
 - Read battery voltage from GPIO 36 with 2:1 voltage divider compensation
-- Calculate battery percentage based on LiPo discharge curve
+- Calculate battery percentage based on Li-ion 18650 discharge curve
+- Save readings to NVS for debugging when running on battery power
 - Provide graceful error handling for display integration
 
 **Hardware Details**:
@@ -1428,8 +1429,10 @@ Accomplishing, Actioning, Actualizing, Baking, Booping, Brewing, Building, Calcu
 - **ADC Resolution**: 12-bit (0-4095 raw values)
 - **Attenuation**: 11dB (0-3.3V input range)
 - **Calibration**: eFuse vref for production accuracy
-- **Sampling**: 64 samples averaged to reduce noise
-- **LiPo Range**: 3.7V (0%) to 4.2V (100%)
+- **Sampling**: 64 samples averaged with 2ms inter-sample delays
+- **Stabilization**: 100ms delay after EPD power-on
+- **Li-ion Range**: 3.0V (0% - safe cutoff) to 4.2V (100%)
+- **Nominal Voltage**: 3.7V (~50-65%)
 
 **Key Functions**:
 
@@ -1464,9 +1467,9 @@ if not initialized:
 
 # Power on EPD to enable voltage divider circuit
 epd_poweron()
-delay(50ms)  # Wait for voltage stabilization
+delay(100ms)  # Increased stabilization time for voltage settling
 
-# Read and average 64 ADC samples
+# Read and average 64 ADC samples with delays between samples
 adc_sum = 0
 for i in 0..63:
     raw = adc1_get_raw(ADC1_CHANNEL_0)
@@ -1474,6 +1477,10 @@ for i in 0..63:
         epd_poweroff()
         return -1.0
     adc_sum += raw
+
+    # Small delay between samples to allow ADC to settle
+    if i < 63:
+        delay(2ms)
 
 adc_average = adc_sum / 64
 
@@ -1486,10 +1493,15 @@ voltage_mv = esp_adc_cal_raw_to_voltage(adc_average, &adc_chars)
 # Compensate for 2:1 voltage divider
 actual_voltage = (voltage_mv / 1000.0) * 2.0
 
+# Cache raw data for NVS logging
+last_reading.adc_raw = adc_average
+last_reading.voltage_mv = voltage_mv
+last_reading.actual_voltage = actual_voltage
+
 return actual_voltage
 ```
 
-**Returns**: Battery voltage in volts (3.7-4.2V typical), or -1.0 on error
+**Returns**: Battery voltage in volts (3.0-4.2V typical range), or -1.0 on error
 
 #### `float battery_read_percentage(void)`
 Read battery percentage (0-100%).
@@ -1501,9 +1513,11 @@ voltage = battery_read_voltage()
 if voltage < 0:
     return -1.0
 
-# Linear mapping from LiPo voltage curve
-# 3.7V = 0%, 4.2V = 100%
-percentage = ((voltage - 3.7) / (4.2 - 3.7)) * 100.0
+# Linear mapping from Li-ion 18650 voltage curve
+# 3.0V = 0% (safe discharge cutoff)
+# 3.7V = ~50-65% (nominal voltage)
+# 4.2V = 100% (fully charged)
+percentage = ((voltage - 3.0) / (4.2 - 3.0)) * 100.0
 
 # Clamp to valid range (handles charging spikes and deep discharge)
 if percentage > 100.0:
@@ -1511,16 +1525,26 @@ if percentage > 100.0:
 else if percentage < 0.0:
     percentage = 0.0
 
+# Save complete reading to NVS for debugging
+last_reading.percentage = percentage
+last_reading.timestamp = current_time()
+
+# Save to NVS namespace "battery_log"
+nvs_set_blob("last_reading", &last_reading, sizeof(battery_reading_t))
+
 return percentage
 ```
 
 **Returns**: Battery percentage (0-100), or -1.0 on error
 
 **Power Management**:
-- Battery reading requires EPD power rail active (~50ms)
-- Total read time: ~51ms (50ms stabilization + 1ms sampling)
+- Battery reading requires EPD power rail active for entire duration
+- Stabilization: 100ms after EPD power-on
+- Sampling: 64 samples × 2ms = 128ms
+- Total read time: ~228ms (100ms stabilization + 128ms sampling)
 - Power consumption: ~10-15mA during reading
-- Negligible impact on wake cycle (<0.3% of active time)
+- Timing: Read after WiFi connects but before SNTP/HTTP (minimal interference)
+- Impact: Negligible vs total wake cycle (~15-30 seconds)
 
 **Error Handling**:
 - Returns -1.0 on all error conditions
@@ -1638,16 +1662,29 @@ const char* get_random_gerund(void);
 esp_err_t battery_init(void);
 
 // Read battery voltage in volts
-// Powers on EPD, reads ADC, calculates actual voltage
+// Powers on EPD, reads ADC with 100ms stabilization and 2ms inter-sample delays
 // Accounts for 2:1 voltage divider on hardware
+// Caches raw data for NVS logging
 // Returns: Battery voltage in volts, or -1.0 on error
 float battery_read_voltage(void);
 
 // Read battery percentage (0-100%)
 // Powers on EPD voltage divider, reads ADC, calculates percentage
-// Uses averaged readings (64 samples) for stability
+// Uses averaged readings (64 samples with 2ms delays) for stability
+// Automatically saves reading to NVS with timestamp for debugging
+// Li-ion range: 3.0V (0%) to 4.2V (100%), nominal 3.7V (~50-65%)
 // Returns: Battery percentage (0-100), or -1.0 on error
 float battery_read_percentage(void);
+
+// Get last battery reading from NVS
+// Useful for debugging when serial console not available
+// Returns: ESP_OK if reading retrieved, ESP_ERR_NVS_NOT_FOUND if none stored
+esp_err_t battery_get_last_reading(battery_reading_t* reading);
+
+// Print last battery reading from NVS to console
+// Automatically called at startup to show previous battery state
+// Displays: timestamp, ADC raw, ADC mV, actual voltage, percentage
+void battery_print_last_reading(void);
 ```
 
 ---
@@ -1663,6 +1700,15 @@ typedef struct {
     char password[64];       // WiFi password (null-terminated)
     uint32_t quote_count;    // Total quotes displayed
 } wifi_config_t;
+
+// Namespace: "battery_log"
+typedef struct {
+    time_t timestamp;        // Unix timestamp of reading
+    uint32_t adc_raw;        // Raw ADC value (0-4095)
+    uint32_t voltage_mv;     // Voltage in millivolts (after calibration)
+    float actual_voltage;    // Actual battery voltage (after divider compensation)
+    float percentage;        // Battery percentage (0-100)
+} battery_reading_t;
 ```
 
 ### Quote Data
@@ -1716,9 +1762,9 @@ typedef struct {
 #define BATT_PIN_GPIO         36           // ADC1_CHANNEL_0
 #define BATT_ADC_CHANNEL      ADC1_CHANNEL_0
 #define BATT_VOLTAGE_DIVIDER  2.0          // Hardware 2:1 divider
-#define BATT_MIN_VOLTAGE      3.7          // LiPo 0%
-#define BATT_MAX_VOLTAGE      4.2          // LiPo 100%
-#define BATT_SAMPLES          64           // Average 64 readings
+#define BATT_MIN_VOLTAGE      3.0          // Li-ion 0% (safe cutoff)
+#define BATT_MAX_VOLTAGE      4.2          // Li-ion 100%
+#define BATT_SAMPLES          64           // Average 64 readings (with 2ms delays)
 ```
 
 ### Network Configuration

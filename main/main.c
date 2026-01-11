@@ -7,6 +7,7 @@
 #include "display_ui.h"
 #include "wifi_manager.h"
 #include "sleep_manager.h"
+#include "battery.h"
 #include "gerunds.h"
 #include "driver/gpio.h"
 
@@ -65,6 +66,9 @@ void app_main(void) {
     }
     ESP_ERROR_CHECK(ret);
     ESP_LOGI(TAG, "NVS initialized");
+
+    // Print last battery reading from NVS (useful for debugging on battery)
+    battery_print_last_reading();
 
     // Initialize sleep manager
     sleep_manager_init();

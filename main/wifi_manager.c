@@ -278,10 +278,9 @@ static void retry_timer_callback(TimerHandle_t xTimer) {
 static void connection_setup_task(void* param) {
     ESP_LOGI(TAG, "Connection setup task started");
 
-    // Initialize SNTP and get current time
-    initialize_sntp();
-
-    // Initialize and read battery
+    // Read battery FIRST, right after WiFi connection but before any transmissions
+    // WiFi is connected but not actively transmitting yet, reducing interference
+    ESP_LOGI(TAG, "Reading battery voltage (WiFi connected but idle)...");
     esp_err_t batt_err = battery_init();
     float battery_percent = -1.0;
     if (batt_err == ESP_OK) {
@@ -294,6 +293,9 @@ static void connection_setup_task(void* param) {
     } else {
         ESP_LOGW(TAG, "Battery init failed: %s", esp_err_to_name(batt_err));
     }
+
+    // Initialize SNTP and get current time
+    initialize_sntp();
 
     // Initialize wikiquote
     wikiquote_init();
