@@ -12,6 +12,8 @@ static const char *TAG = "WIKIQUOTE";
 
 #define QUOTABLE_API_URL "https://quotes-api-three.vercel.app/api/randomquote?language=it"
 #define MAX_HTTP_OUTPUT_BUFFER 4096   // 4KB buffer (quotes are much smaller)
+#define MAX_QUOTE_LENGTH 160          // Max allowed quote text length
+#define MAX_FETCH_RETRIES 5           // Max retries when quote is too long
 
 static char http_response_buffer[MAX_HTTP_OUTPUT_BUFFER];
 static int http_response_len = 0;
@@ -141,14 +143,8 @@ esp_err_t wikiquote_get_random_quote_with_author(char* quote_buffer, size_t quot
                                                   char* author_buffer, size_t author_size) {
     ESP_LOGI(TAG, "Fetching random quote with author from Quotable.io...");
 
-    // Reset response buffer
-    memset(http_response_buffer, 0, sizeof(http_response_buffer));
-    http_response_len = 0;
-
     const char *url = QUOTABLE_API_URL;
-    ESP_LOGI(TAG, "API URL: %s", url);
 
-    // Configure HTTP client with TLS certificate verification
     esp_http_client_config_t config = {
         .url = url,
         .event_handler = http_event_handler,
@@ -158,66 +154,86 @@ esp_err_t wikiquote_get_random_quote_with_author(char* quote_buffer, size_t quot
         .crt_bundle_attach = esp_crt_bundle_attach,
     };
 
-    esp_http_client_handle_t client = esp_http_client_init(&config);
-    if (client == NULL) {
-        ESP_LOGE(TAG, "Failed to initialize HTTP client");
-        return ESP_FAIL;
-    }
+    esp_err_t err = ESP_FAIL;
 
-    // Perform HTTP GET request
-    esp_err_t err = esp_http_client_perform(client);
+    for (int attempt = 1; attempt <= MAX_FETCH_RETRIES; attempt++) {
+        ESP_LOGI(TAG, "Attempt %d/%d", attempt, MAX_FETCH_RETRIES);
 
-    if (err == ESP_OK) {
-        int status_code = esp_http_client_get_status_code(client);
-        ESP_LOGI(TAG, "HTTP GET Status = %d, received = %d", status_code, http_response_len);
+        // Reset response buffer for each attempt
+        memset(http_response_buffer, 0, sizeof(http_response_buffer));
+        http_response_len = 0;
 
-        if (status_code == 200 && http_response_len > 0) {
-            // Null-terminate response
-            http_response_buffer[http_response_len] = '\0';
+        esp_http_client_handle_t client = esp_http_client_init(&config);
+        if (client == NULL) {
+            ESP_LOGE(TAG, "Failed to initialize HTTP client");
+            break;
+        }
 
-            // Parse JSON
-            cJSON *root = cJSON_Parse(http_response_buffer);
-            if (root == NULL) {
-                ESP_LOGE(TAG, "Failed to parse JSON");
-                esp_http_client_cleanup(client);
-                return ESP_FAIL;
-            }
+        err = esp_http_client_perform(client);
 
-            // Extract both quote and author
-            cJSON *quote_field = cJSON_GetObjectItem(root, "quote");
-            cJSON *author = cJSON_GetObjectItem(root, "author");
+        if (err == ESP_OK) {
+            int status_code = esp_http_client_get_status_code(client);
+            ESP_LOGI(TAG, "HTTP GET Status = %d, received = %d", status_code, http_response_len);
 
-            if (quote_field && cJSON_IsString(quote_field) && author && cJSON_IsString(author)) {
-                snprintf(quote_buffer, quote_size, "%s", quote_field->valuestring);
-                snprintf(author_buffer, author_size, "%s", author->valuestring);
+            if (status_code == 200 && http_response_len > 0) {
+                // Null-terminate response
+                http_response_buffer[http_response_len] = '\0';
 
-                ESP_LOGI(TAG, "Quote: %.100s...", quote_buffer);
-                ESP_LOGI(TAG, "Author: %s", author_buffer);
+                // Parse JSON
+                cJSON *root = cJSON_Parse(http_response_buffer);
+                if (root == NULL) {
+                    ESP_LOGE(TAG, "Failed to parse JSON");
+                    esp_http_client_cleanup(client);
+                    err = ESP_FAIL;
+                    break;
+                }
+
+                // Extract both quote and author
+                cJSON *quote_field = cJSON_GetObjectItem(root, "quote");
+                cJSON *author = cJSON_GetObjectItem(root, "author");
+
+                if (quote_field && cJSON_IsString(quote_field) && author && cJSON_IsString(author)) {
+                    size_t quote_len = strlen(quote_field->valuestring);
+
+                    if (quote_len > MAX_QUOTE_LENGTH) {
+                        ESP_LOGW(TAG, "Quote too long (%d chars > %d), retrying...",
+                                 (int)quote_len, MAX_QUOTE_LENGTH);
+                        cJSON_Delete(root);
+                        esp_http_client_cleanup(client);
+                        err = ESP_FAIL;
+                        continue;
+                    }
+
+                    snprintf(quote_buffer, quote_size, "%s", quote_field->valuestring);
+                    snprintf(author_buffer, author_size, "%s", author->valuestring);
+
+                    ESP_LOGI(TAG, "Quote (%d chars): %.100s...", (int)quote_len, quote_buffer);
+                    ESP_LOGI(TAG, "Author: %s", author_buffer);
+
+                    cJSON_Delete(root);
+                    esp_http_client_cleanup(client);
+                    return ESP_OK;
+                } else {
+                    ESP_LOGE(TAG, "Failed to find 'quote' or 'author' field in JSON");
+                }
 
                 cJSON_Delete(root);
-                esp_http_client_cleanup(client);
-                return ESP_OK;
+                err = ESP_FAIL;
             } else {
-                ESP_LOGE(TAG, "Failed to find 'quote' or 'author' field in JSON");
+                ESP_LOGE(TAG, "HTTP request failed with status code: %d", status_code);
+                err = ESP_FAIL;
             }
-
-            cJSON_Delete(root);
-            err = ESP_FAIL;
         } else {
-            ESP_LOGE(TAG, "HTTP request failed with status code: %d", status_code);
-            err = ESP_FAIL;
+            ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
         }
-    } else {
-        ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
+
+        esp_http_client_cleanup(client);
+        break;  // Only retry on quote-too-long; stop on HTTP/parse errors
     }
 
-    esp_http_client_cleanup(client);
+    // Fallback if all attempts fail
+    snprintf(quote_buffer, quote_size, "La semplicità è l'ultima sofisticazione.");
+    snprintf(author_buffer, author_size, "Leonardo da Vinci");
 
-    // Fallback if API fails
-    if (err != ESP_OK) {
-        snprintf(quote_buffer, quote_size, "La semplicità è l'ultima sofisticazione.");
-        snprintf(author_buffer, author_size, "Leonardo da Vinci");
-    }
-
-    return err;
+    return ESP_FAIL;
 }

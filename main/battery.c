@@ -22,8 +22,8 @@ static const char *TAG = "BATTERY";
 
 // Battery characteristics
 #define BATT_VOLTAGE_DIVIDER 2.0           // Hardware voltage divider ratio
-#define BATT_MIN_VOLTAGE 3.0               // Li-ion minimum safe voltage (0%)
-#define BATT_MAX_VOLTAGE 4.2               // Li-ion maximum voltage (100%)
+#define BATT_MIN_VOLTAGE 3.0               // Voltage at 0%
+#define BATT_MAX_VOLTAGE 4.0               // Voltage at 100% (anything above = 100%)
 
 // ADC calibration
 static esp_adc_cal_characteristics_t adc_chars;

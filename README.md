@@ -213,7 +213,7 @@ lilygo-quote-display/
 - **GPIO**: 36 (ADC1_CHANNEL_0)
 - **Voltage Divider**: 2:1 ratio (2x 100kΩ resistors, built into hardware)
 - **ADC Resolution**: 12-bit (0-4095)
-- **Voltage Range**: 3.0V (0%) to 4.2V (100%) for Li-ion 18650 battery
+- **Voltage Range**: ≥4.0V = 100%, linear 4.0V→3.0V = 100%→0%
 - **Sampling**: 64 samples averaged with 2ms inter-sample delays
 - **Stabilization**: 100ms delay after EPD power-on for voltage settling
 - **Calibration**: eFuse vref for accurate readings
@@ -299,6 +299,6 @@ This project uses:
 
 **🤖 Generated with [Claude Code](https://claude.com/claude-code)**
 
-**Version**: 1.0
-**Last Updated**: December 2025
+**Version**: 1.1
+**Last Updated**: February 2026
 **Author**: Antonio

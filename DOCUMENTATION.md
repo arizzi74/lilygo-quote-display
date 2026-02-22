@@ -1216,73 +1216,71 @@ Start HTTP server on port 80.
 **Purpose**: Fetch random quotes from Italian quotes API
 
 **API Details**:
-- Endpoint: `http://quotes-api-three.vercel.app/random`
+- Endpoint: `https://quotes-api-three.vercel.app/api/randomquote?language=it`
 - Method: GET
-- Response: JSON with `quote` and `author` fields
+- Response: JSON `{"quote": "...", "author": "...", "tags": "..."}`
+
+**Constants**:
+```c
+#define MAX_QUOTE_LENGTH  160   // Max allowed quote text length in characters
+#define MAX_FETCH_RETRIES   5   // Max retry attempts when quote is too long
+```
 
 **Key Functions**:
 
-#### `esp_err_t wikiquote_fetch(char** quote, char** author)`
-Fetch random Italian quote from API.
+#### `esp_err_t wikiquote_get_random_quote_with_author(char* quote_buffer, size_t quote_size, char* author_buffer, size_t author_size)`
+Fetch random Italian quote with author from API, retrying if quote is too long.
 
 **Parameters**:
-- `quote`: Output pointer for quote text (caller must free)
-- `author`: Output pointer for author name (caller must free)
+- `quote_buffer`: Output buffer for quote text
+- `quote_size`: Size of quote buffer
+- `author_buffer`: Output buffer for author name
+- `author_size`: Size of author buffer
 
 **Returns**:
-- ESP_OK: Success
-- ESP_FAIL: HTTP error or parsing error
+- ESP_OK: Success (quote ≤ 160 chars)
+- ESP_FAIL: HTTP/parse error, or all retries exhausted
 
 **Flow**:
 ```
-# Configure HTTP client
-esp_http_client_config_t config = {
-    .url = "http://quotes-api-three.vercel.app/random",
-    .method = HTTP_METHOD_GET,
-    .timeout_ms = 10000
-}
+for attempt = 1 to MAX_FETCH_RETRIES (5):
+    Reset response buffer
+    client = esp_http_client_init(&config)
+    esp_http_client_perform(client)
 
-client = esp_http_client_init(&config)
+    if status != 200:
+        cleanup; break  # No retry on HTTP errors
 
-# Perform request
-esp_http_client_perform(client)
+    Parse JSON → extract "quote" and "author"
 
-# Check status
-status = esp_http_client_get_status_code(client)
-if status != 200:
-    return ESP_FAIL
+    if len(quote) > MAX_QUOTE_LENGTH (160):
+        Log warning "Quote too long (N chars > 160), retrying..."
+        cleanup; continue  # Retry with next attempt
 
-# Read response body
-buffer = malloc(4096)
-length = esp_http_client_read(client, buffer, 4096)
+    # Quote fits — copy and return success
+    copy to quote_buffer and author_buffer
+    return ESP_OK
 
-# Parse JSON
-Find "quote": " ... "
-Find "author": " ... "
-
-# Allocate and copy
-*quote = strdup(quote_value)
-*author = strdup(author_value)
-
-cleanup:
-free(buffer)
-esp_http_client_cleanup(client)
-
-return ESP_OK
+# All attempts failed or exhausted
+Use fallback: "La semplicità è l'ultima sofisticazione." / "Leonardo da Vinci"
+return ESP_FAIL
 ```
 
 **JSON Response Example**:
 ```json
 {
   "quote": "La vita è quella cosa che accade mentre tu stai facendo altri progetti.",
-  "author": "John Lennon"
+  "author": "John Lennon",
+  "tags": "vita, progetti"
 }
 ```
 
 **Error Handling**:
-- Network timeout → Return ESP_FAIL
-- Non-200 status → Return ESP_FAIL
-- JSON parse error → Use fallback quote: "Quote fetch error" / "Unknown"
+- Quote > 160 chars → retry (up to 5 attempts)
+- Network timeout → fallback, no retry
+- Non-200 status → fallback, no retry
+- JSON parse error → fallback, no retry
+- All retries exhausted → fallback quote
 
 ---
 
@@ -1431,8 +1429,8 @@ Accomplishing, Actioning, Actualizing, Baking, Booping, Brewing, Building, Calcu
 - **Calibration**: eFuse vref for production accuracy
 - **Sampling**: 64 samples averaged with 2ms inter-sample delays
 - **Stabilization**: 100ms delay after EPD power-on
-- **Li-ion Range**: 3.0V (0% - safe cutoff) to 4.2V (100%)
-- **Nominal Voltage**: 3.7V (~50-65%)
+- **Voltage Range**: ≥4.0V = 100%, linear 4.0V→3.0V = 100%→0%
+- **Nominal Voltage**: 3.5V (~50%)
 
 **Key Functions**:
 
@@ -1501,7 +1499,7 @@ last_reading.actual_voltage = actual_voltage
 return actual_voltage
 ```
 
-**Returns**: Battery voltage in volts (3.0-4.2V typical range), or -1.0 on error
+**Returns**: Battery voltage in volts (3.0-4.0V typical range), or -1.0 on error
 
 #### `float battery_read_percentage(void)`
 Read battery percentage (0-100%).
@@ -1513,13 +1511,14 @@ voltage = battery_read_voltage()
 if voltage < 0:
     return -1.0
 
-# Linear mapping from Li-ion 18650 voltage curve
-# 3.0V = 0% (safe discharge cutoff)
-# 3.7V = ~50-65% (nominal voltage)
-# 4.2V = 100% (fully charged)
-percentage = ((voltage - 3.0) / (4.2 - 3.0)) * 100.0
+# Linear mapping:
+# >= 4.0V = 100% (clamped)
+#    3.5V = 50%
+#    3.0V = 0%
+#  < 3.0V = 0% (clamped)
+percentage = ((voltage - 3.0) / (4.0 - 3.0)) * 100.0
 
-# Clamp to valid range (handles charging spikes and deep discharge)
+# Clamp to valid range
 if percentage > 100.0:
     percentage = 100.0
 else if percentage < 0.0:
@@ -1672,7 +1671,7 @@ float battery_read_voltage(void);
 // Powers on EPD voltage divider, reads ADC, calculates percentage
 // Uses averaged readings (64 samples with 2ms delays) for stability
 // Automatically saves reading to NVS with timestamp for debugging
-// Li-ion range: 3.0V (0%) to 4.2V (100%), nominal 3.7V (~50-65%)
+// >= 4.0V = 100%, linear 4.0V->3.0V = 100%->0%
 // Returns: Battery percentage (0-100), or -1.0 on error
 float battery_read_percentage(void);
 
@@ -1762,8 +1761,8 @@ typedef struct {
 #define BATT_PIN_GPIO         36           // ADC1_CHANNEL_0
 #define BATT_ADC_CHANNEL      ADC1_CHANNEL_0
 #define BATT_VOLTAGE_DIVIDER  2.0          // Hardware 2:1 divider
-#define BATT_MIN_VOLTAGE      3.0          // Li-ion 0% (safe cutoff)
-#define BATT_MAX_VOLTAGE      4.2          // Li-ion 100%
+#define BATT_MIN_VOLTAGE      3.0          // Voltage at 0%
+#define BATT_MAX_VOLTAGE      4.0          // Voltage at 100% (anything above = 100%)
 #define BATT_SAMPLES          64           // Average 64 readings (with 2ms delays)
 ```
 
@@ -1821,8 +1820,10 @@ typedef struct {
 
 ```c
 // Quote API
-#define QUOTE_API_URL        "http://quotes-api-three.vercel.app/random"
+#define QUOTE_API_URL        "https://quotes-api-three.vercel.app/api/randomquote?language=it"
 #define QUOTE_API_TIMEOUT    10000          // 10 seconds
+#define MAX_QUOTE_LENGTH     160            // Max quote text length (chars); retry if exceeded
+#define MAX_FETCH_RETRIES    5              // Max retries when quote is too long
 
 // SNTP
 #define SNTP_SERVER          "pool.ntp.org"
@@ -1924,6 +1925,6 @@ This project uses ESP-IDF (Apache 2.0) and EPDiy (MIT).
 
 ---
 
-**Last Updated**: 2024-12-28
-**Version**: 1.0
+**Last Updated**: 2026-02-22
+**Version**: 1.1
 **Author**: Antonio
